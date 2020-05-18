@@ -10,12 +10,12 @@ namespace lab5
         private int winsAmount;
         public int RoundsAmount { 
             get=>roundsAmount;
-            set => roundsAmount = value;
+            set => roundsAmount = value > 0 ? value : 0;
         }
         public int WinsAmount
         {
             get => winsAmount;
-            set => winsAmount = value;
+            set => winsAmount = value > 0 ? value : 0;
         }
         public override string Achievements { get; set; }
 

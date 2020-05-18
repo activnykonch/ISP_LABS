@@ -10,7 +10,7 @@ namespace lab5
         public double BestTime
         {
             get => bestTime;
-            set => bestTime = value;
+            set => bestTime = value > 0 ? value : 0;
         }
         public string SwimmingStyle { get; set; }
         public override string Achievements { get; set; }
