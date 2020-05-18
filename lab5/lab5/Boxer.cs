@@ -8,8 +8,8 @@ namespace lab5
     {
         private int roundsAmount;
         private int winsAmount;
-        public int RoundsAmount { 
-            get=>roundsAmount;
+        public int RoundsAmount {
+            get => roundsAmount;
             set => roundsAmount = value > 0 ? value : 0;
         }
         public int WinsAmount
