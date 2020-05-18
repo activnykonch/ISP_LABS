@@ -6,8 +6,10 @@ namespace lab5
     {
         static void Main(string[] args)
         {
-            object obj = 3.5f; // Для значения 3.5 выводится тип double 
-            int х = (int) (float) obj;
+            CountryInfo country = new CountryInfo("Belarus", "Ireland");
+            Sportsmen boxer = new Boxer("Conor McGregor", 31, "14.07.1988", country, 1.75, 73, "MMA", 
+            SportRank.MasterOfSport, 26, 2, "Champion");
+            boxer.Action();
         }
     }
 }
