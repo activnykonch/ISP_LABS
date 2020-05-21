@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace lab7
 {
     public class RationalNumber : IComparable<RationalNumber>
     {
-        public enum DisplayMode { Fraction, DecimalFraction }
+        public enum RepresentationVariant { Fraction, DecimalFraction }
 
         private long denominator;
         public long Numerator { get; set; }
@@ -18,7 +19,7 @@ namespace lab7
                 if (value < 1)
                 {
                     throw new ApplicationException(
-                        "Attempt to set an invalid denominator.");
+                        "Invalid denominator.");
                 }
 
                 denominator = value;
@@ -35,8 +36,7 @@ namespace lab7
         {
             if (denominator < 1)
             {
-                throw new ApplicationException(
-                    "Attempt to initialize RationalNumber object with an invalid denominator.");
+                throw new DivideByZeroException();
             }
 
             Numerator = numerator;
@@ -45,32 +45,32 @@ namespace lab7
 
         public static RationalNumber operator -(RationalNumber number1, RationalNumber number2)
         {
-            RationalNumber resultNumber = new RationalNumber();
-            resultNumber.Numerator = number1.Numerator * number2.Denominator - number2.Numerator * number1.Denominator;
-            resultNumber.Denominator = number1.Denominator * number2.Denominator;
-            resultNumber.ReduceFraction();
+            RationalNumber result = new RationalNumber();
+            result.Numerator = number1.Numerator * number2.Denominator - number2.Numerator * number1.Denominator;
+            result.Denominator = number1.Denominator * number2.Denominator;
+            result.DecreaseFraction();
 
-            return resultNumber;
+            return result;
         }
 
         public static RationalNumber operator +(RationalNumber number1, RationalNumber number2)
         {
-            RationalNumber resultNumber = new RationalNumber();
-            resultNumber.Numerator = number1.Numerator * number2.Denominator + number2.Numerator * number1.Denominator;
-            resultNumber.Denominator = number1.Denominator * number2.Denominator;
-            resultNumber.ReduceFraction();
+            RationalNumber result = new RationalNumber();
+            result.Numerator = number1.Numerator * number2.Denominator + number2.Numerator * number1.Denominator;
+            result.Denominator = number1.Denominator * number2.Denominator;
+            result.DecreaseFraction();
 
-            return resultNumber;
+            return result;
         }
 
         public static RationalNumber operator *(RationalNumber number1, RationalNumber number2)
         {
-            RationalNumber resultNumber = new RationalNumber();
-            resultNumber.Numerator = number1.Numerator * number2.Numerator;
-            resultNumber.Denominator = number1.Denominator * number2.Denominator;
-            resultNumber.ReduceFraction();
+            RationalNumber result = new RationalNumber();
+            result.Numerator = number1.Numerator * number2.Numerator;
+            result.Denominator = number1.Denominator * number2.Denominator;
+            result.DecreaseFraction();
 
-            return resultNumber;
+            return result;
         }
 
         public static RationalNumber operator /(RationalNumber number1, RationalNumber number2)
@@ -80,12 +80,12 @@ namespace lab7
                 throw new DivideByZeroException();
             }
 
-            RationalNumber resultNumber = new RationalNumber();
-            resultNumber.Numerator = number1.Numerator * number2.Denominator;
-            resultNumber.Denominator = number1.Denominator * number2.Numerator;
-            resultNumber.ReduceFraction();
+            RationalNumber result = new RationalNumber();
+            result.Numerator = number1.Numerator * number2.Denominator;
+            result.Denominator = number1.Denominator * number2.Numerator;
+            result.DecreaseFraction();
 
-            return resultNumber;
+            return result;
         }
 
         public static bool operator >(RationalNumber number1, RationalNumber number2) => number1.CompareTo(number2) > 0;
@@ -106,13 +106,13 @@ namespace lab7
 
         public static implicit operator RationalNumber(int number) => new RationalNumber(number, 1);
 
-        public static implicit operator RationalNumber(double number) => DecimalFractionToRationalNumber(number);
+        public static implicit operator RationalNumber(double number) => DecimalToRational(number);
 
-        private void ReduceFraction()
+        private void DecreaseFraction()
         {
-            long greatestCommonDivisor = Numerator > Denominator
-                ? GreatestCommonDivisor(Numerator, Denominator)
-                : GreatestCommonDivisor(Denominator, Numerator);
+            long greatestCommonDivisor = Math.Abs(Numerator) > Math.Abs(Denominator)
+                ? GreatestCommonDivisor(Math.Abs(Numerator), Denominator)
+                : GreatestCommonDivisor(Math.Abs(Denominator), Math.Abs(Numerator));
 
             Numerator /= greatestCommonDivisor;
             Denominator /= greatestCommonDivisor;
@@ -128,7 +128,7 @@ namespace lab7
             return GreatestCommonDivisor(b, a % b);
         }
 
-        public static RationalNumber DecimalFractionToRationalNumber(double number)
+        public static RationalNumber DecimalToRational(double number)
         {
             RationalNumber rationalNumber;
             long numerator;
@@ -143,13 +143,14 @@ namespace lab7
             }
             numerator = (long)Math.Round(number);
             rationalNumber = new RationalNumber(numerator, denominator);
-            rationalNumber.ReduceFraction();
+            rationalNumber.DecreaseFraction();
 
             return rationalNumber;
         }
 
-        public static RationalNumber GetNumberFromString(string s)
+        public static RationalNumber StringToNumber(string s)
         {
+            IFormatProvider formatter = new NumberFormatInfo { NumberDecimalSeparator = "." };
             RationalNumber rationalNumber;
             string fractionPattern = "^[+-]?[1-9][0-9]*/[1-9][0-9]*$|^0/[1-9][0-9]*$";
             string floatingPointPattern = "^[+-]?([0-9]+([.][0-9]*)?$|^[.][0-9]+)$";
@@ -168,23 +169,21 @@ namespace lab7
             }
             else if (Regex.IsMatch(s, floatingPointPattern))
             {
-                rationalNumber = DecimalFractionToRationalNumber(Double.Parse(s));
+                rationalNumber = DecimalToRational(Double.Parse(s, formatter));
                 return rationalNumber;
             }
             else
             {
-                throw new ApplicationException("Attempt to convert an invalid string to a rational number.");
+                throw new ApplicationException("Invalid string representation of rational number");
             }
         }
 
         public int CompareTo(RationalNumber other)
         {
-            // Due to the nature of the representation of floating-point numbers,
-            // we will use an approximate comparison with the necessary tolerance.
-            double tolerance = 0.000000001;
+            double accuracy = 0.0000000001;
             double delta = Math.Abs(this.ToDouble() - other.ToDouble());
 
-            if (delta < tolerance)
+            if (delta < accuracy)
             {
                 return 0;
             }
@@ -199,12 +198,10 @@ namespace lab7
 
             if (obj is RationalNumber rationalNumber)
             {
-                // Due to the nature of the representation of floating-point numbers,
-                // we will use an approximate comparison with the necessary tolerance.
-                double tolerance = 0.000000001;
+                double accuracy = 0.0000000001;
                 double delta = Math.Abs(this.ToDouble() - rationalNumber.ToDouble());
 
-                return delta < tolerance;
+                return delta < accuracy;
             }
 
             return false;
@@ -214,23 +211,21 @@ namespace lab7
         {
             unchecked
             {
-                return (Numerator.GetHashCode() * 256) ^ (Denominator.GetHashCode() * 128);
+                return (Numerator.GetHashCode()) * (Denominator.GetHashCode());
             }
         }
 
-        public string ToString(DisplayMode mode)
+        public string ToString(RepresentationVariant mode)
         {
             switch (mode)
             {
-                case DisplayMode.Fraction:
+                case RepresentationVariant.Fraction:
                     {
                         return $"{Numerator}/{Denominator}";
-                        break;
                     }
-                case DisplayMode.DecimalFraction:
+                case RepresentationVariant.DecimalFraction:
                     {
                         return ToDouble().ToString();
-                        break;
                     }
                 default:
                     {
